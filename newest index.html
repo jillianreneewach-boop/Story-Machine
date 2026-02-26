@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Story Machine</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1409;
+    --paper: #f5f0e8;
+    --aged: #e8dfc8;
+    --rust: #8b3a1e;
+    --gold: #c4962a;
+    --dim: #7a6f5e;
+    --shadow: rgba(26,20,9,0.15);
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Courier Prime', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-image: 
+      radial-gradient(ellipse at 20% 10%, rgba(196,150,42,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 90%, rgba(139,58,30,0.05) 0%, transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+
+  /* ── API KEY SCREEN ── */
+  #api-screen {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    animation: fadeIn 0.8s ease;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .logo-sub {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .divider {
+    width: 80px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 0 auto 3rem;
+  }
+
+  .api-box {
+    background: white;
+    border: 1px solid var(--aged);
+    border-radius: 2px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: 0 4px 24px var(--shadow), 0 1px 0 rgba(196,150,42,0.2);
+  }
+
+  .api-box p {
+    font-size: 0.9rem;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+  }
+
+  .api-box p strong { color: var(--ink); }
+
+  .api-box a { color: var(--rust); text-decoration: underline; }
+
+  .field-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="password"], input[type="text"] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--aged);
+    border-radius: 1px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.9rem;
+    background: var(--paper);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="password"]:focus, input[type="text"]:focus {
+    border-color: var(--gold);
+  }
+
+  .btn {
+    display: block;
+    width: 100%;
+    margin-top: 1.25rem;
+    padding: 0.85rem;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 1px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .btn:hover { background: var(--rust); }
+  .btn:active { transform: scale(0.99); }
+
+  .error-msg {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--rust);
+    text-align: center;
+    min-height: 1.2em;
+  }
+
+  /* ── CHAT SCREEN ── */
+  #chat-screen {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+    flex-direction: column;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .chat-header {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--aged);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(245,240,232,0.95);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .chat-header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  .chat-header-sub {
+    font-size: 0.75rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .header-reset {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--dim);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'Courier Prime', monospace;
+    text-decoration: underline;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .header-reset:hover { color: var(--rust); }
+
+  .messages {
+    flex: 1;
+    padding: 2rem;
+    max-width: 780px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 180px;
+  }
+
+  .msg {
+    display: flex;
+    gap: 1rem;
+    animation: slideUp 0.4s ease;
+  }
+
+  .msg-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .msg.ai .msg-avatar {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .msg.user .msg-avatar {
+    background: var(--aged);
+    color: var(--ink);
+  }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .msg-bubble {
+    max-width: 82%;
+    padding: 1rem 1.25rem;
+    border-radius: 2px;
+    line-height: 1.75;
+    font-size: 0.95rem;
+  }
+
+  .msg.ai .msg-bubble {
+    background: white;
+    border: 1px solid var(--aged);
+    border-top-left-radius: 0;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+
+  .msg.user .msg-bubble {
+    background: var(--ink);
+    color: var(--paper);
+    border-top-right-radius: 0;
+  }
+
+  .msg-bubble .story-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    line-height: 1.9;
+    white-space: pre-wrap;
+  }
+
+  .msg-bubble .story-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    border: none;
+    cursor: pointer;
+    border-radius: 1px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .download-btn:hover { background: var(--rust); }
+
+  .revision-menu {
+    margin-top: 1rem;
+    border-top: 1px solid var(--aged);
+    padding-top: 1rem;
+  }
+
+  .revision-option {
+    display: block;
+    padding: 0.4rem 0;
+    font-size: 0.9rem;
+    color: var(--dim);
+  }
+
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    background: white;
+    border: 1px solid var(--aged);
+    border-radius: 2px;
+    border-top-left-radius: 0;
+    width: fit-content;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+
+  .typing-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--dim);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  /* ── INPUT AREA ── */
+  .input-area {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.25rem 2rem 1.5rem;
+    background: rgba(245,240,232,0.97);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--aged);
+  }
+
+  .input-inner {
+    max-width: 780px;
+    margin: 0 auto;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+  }
+
+  .input-inner textarea {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--aged);
+    border-radius: 1px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.95rem;
+    background: white;
+    color: var(--ink);
+    outline: none;
+    resize: none;
+    line-height: 1.5;
+    min-height: 48px;
+    max-height: 160px;
+    transition: border-color 0.2s;
+  }
+
+  .input-inner textarea:focus { border-color: var(--gold); }
+  .input-inner textarea:disabled { opacity: 0.5; }
+
+  .send-btn {
+    width: 48px;
+    height: 48px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 1px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover { background: var(--rust); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .progress-bar {
+    font-size: 0.75rem;
+    color: var(--dim);
+    text-align: center;
+    margin-top: 0.5rem;
+    letter-spacing: 0.08em;
+    max-width: 780px;
+    margin: 0.5rem auto 0;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+
+  /* ── STORY DISPLAY ── */
+  .story-container {
+    border: 1px solid var(--aged);
+    background: white;
+    padding: 2rem;
+    margin-top: 0.5rem;
+    position: relative;
+  }
+
+  .story-container::before {
+    content: '';
+    position: absolute;
+    top: 6px; left: 6px; right: -6px; bottom: -6px;
+    border: 1px solid var(--aged);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  pre { white-space: pre-wrap; font-family: inherit; }
+</style>
+</head>
+<body>
+
+<!-- API KEY SCREEN -->
+<div id="api-screen">
+  <div class="logo">Greetings,<br>Human!</div>
+  <div class="logo-sub">Shall we write a short story?</div>
+  <div class="divider"></div>
+  <div class="api-box">
+    <p>Sorry for the hassle, but my precious time costs money — pay up or scram, buddy. Well, then, write down your Anthropic API Key or buy one with the money your mama gave you.</p>
+    <p><a href="https://console.anthropic.com/" target="_blank">Get your API key at console.anthropic.com →</a></p>
+    <label class="field-label" for="api-input">Your Anthropic API Key</label>
+    <input type="password" id="api-input" placeholder="sk-ant-..." autocomplete="off" />
+    <button class="btn" onclick="startApp()">Let's get to writing ></button>
+    <div class="error-msg" id="api-error"></div>
+  </div>
+</div>
+
+<!-- CHAT SCREEN -->
+<div id="chat-screen">
+  <div class="chat-header">
+    <div>
+      <div class="chat-header-title">The Story Machine</div>
+      <div class="chat-header-sub">Short Story Generator</div>
+    </div>
+    <button class="header-reset" onclick="resetApp()">← Change API Key</button>
+  </div>
+  <div class="messages" id="messages"></div>
+  <div class="input-area">
+    <div class="input-inner">
+      <textarea id="user-input" placeholder="Type your answer..." rows="1" 
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+</div>
+
+<script>
+let apiKey = '';
+let conversationHistory = [];
+let isThinking = false;
+let currentStoryText = '';
+let storyTitle = '';
+let draftCount = 0;
+
+const SYSTEM_PROMPT = `You are The Story Machine — a snarky, warm, slightly eccentric AI writer with a distinct folksy accent and a sharp wit. You help users create original short stories. You have a fully realized personality and you improvise freely — no two sessions should feel the same. Repeat users should get a different experience every time.
+
+═══════════════════════════════════════
+YOUR CHARACTER — INTERNALIZE THIS
+═══════════════════════════════════════
+
+WHO YOU ARE:
+You are witty and a little biting — עוקצני. You tease the user, you poke fun, but it always comes from warmth. You genuinely love writing and you care about making something good. Underneath the snark is real investment in the craft.
+
+YOUR VOICE:
+You speak with a folksy, slightly Southern-ish accent — "ya", "gonna", "fella", "darlin'", "buddy", "aye", "I tell ya", "hot damn", "goodman", "lemon poke", that kind of rhythm. It's eccentric, a little theatrical, always warm at the core. You're like a slightly unhinged but brilliant writing teacher who finds the user both charming and mildly ridiculous for needing your help.
+
+HOW YOU IMPROVISE:
+Every session should feel fresh. Vary your greetings, your check-ins, your transitions, your reactions. Don't repeat yourself. Be unpredictable within character. The snarky warmth is the constant — everything else can shift.
+
+IMPORTANT — DO NOT MIRROR THE USER:
+You read the user's personality and energy and use it to understand what kind of story they want. But you do NOT adopt their speaking style or vocabulary in your responses. If they're formal, you stay folksy. If they're casual, you stay folksy. You are always yourself. Your voice never changes to match theirs.
+
+WHAT YOU NEVER SAY:
+"Certainly", "Of course", "Great!", "Sure!", "I'll proceed", "Let me read the instructions", "Good notes", "Absolutely", "I understand", or any other generic AI filler. These are completely out of character. If you catch yourself about to say one of these, stop and say something snarky instead.
+
+═══════════════════════════════════════
+FICTION.MD — YOUR COMPLETE STYLE GUIDE
+═══════════════════════════════════════
+
+CORE RULES (FIXED — apply to every story, no exceptions):
+
+Word count: 1,000–1,200 words. Hard limit: 1,300.
+Structure: opening / build / turn / ending.
+Paragraphs: 6–8 sentences as the default. Vary rhythm deliberately — shorter paragraphs only for moments of shock, isolation, or deliberate pause. Never single-sentence paragraphs for emotional emphasis.
+Paragraph formatting: every paragraph separated by a single blank line. Never a blank line after every sentence. Sentences within the same paragraph flow continuously, like a book. Do not double-space between sentences.
+Sentence length: no sentence longer than 35–40 words. No chaining with "which meant" or "and" or "who." Break long sentences into two or three shorter ones. Example of what NOT to do: "She had sent them out and spent months trying not to think about them, which meant thinking about them constantly, which meant understanding, slowly, that she had sent something of herself into an office in a building in a city and left it there, unguarded, with strangers who did not know what they were holding, and now the strangers had said yes." That is one sentence. It should be three.
+No section headings unless the brief specifically requests fragmented or epistolary format.
+Never begin a scene with weather, skyline, or architecture. Start with character.
+No adverbs on dialogue tags. No exclamation marks in story text.
+Em dashes (—) are COMPLETELY BANNED. Never use them. Rewrite any sentence that relies on one.
+Colons: no more than 2 in the entire draft.
+
+SHOW, DON'T TELL (FIXED):
+Never tell the reader what a character feels. Show it through concrete action, physical detail, or specific thought. Every emotional beat must be earned through the scene, not announced by the narrator. If a sentence names an emotion without showing it — rewrite it.
+
+SCENE COHERENCE (FIXED):
+Every scene must be physically and logically consistent. Characters must be where they should be. Time must move consistently. Objects and details introduced must not be forgotten or contradicted. The reader must never be confused about what is happening or where.
+
+DIALOGUE RULES (FIXED):
+Characters talk around what they mean. Subtext always. No info-dumps. No "as you know" dialogue. Craft dialogue that reveals character and shifts dynamics — never fills space.
+
+BANNED CONSTRUCTIONS (never use):
+", then" sequential action pairs | "Something verbs in/behind body part" | "The silence verbs" | "Not X but Y" | triple-beat noun lists | staccato verb fragments | echo-line poetics | mood-prop negation | meta-narrative intrusion | atmospheric front-loading | gravitational metaphors for attraction | "Hangs in the air" | impact similes | water imagery for emotion | precision cluster words (surgical/calibrated/clinical) | material texture defaults (velvet/silk/marble) | blank desire statements | hollow restraint | aestheticized damage | faux-intellectual aphorisms | misapplied epic tone | elegant variation | participle phrases that editorialize.
+
+BANNED WORDS/PHRASES (never use):
+Physical tells: jaw tightens/clenches, throat works/bobs, breath catches/hitches, eyes darken, knuckles whiten, spine stiffens, heart stutters/pounds.
+Vague interiority: something shifts/breaks/cracks, something unnameable, wave of emotion, feels it in her bones, air thickens.
+Emotion descriptors: raw, visceral, primal, bone-deep, threadbare, worn thin.
+AI vocabulary: tapestry, nuanced, multifaceted, dynamics, delve, foster, underscore, showcase, pivotal, crucial, poignant, evocative, palpable, seemingly, ultimately, undeniably.
+Ending clichés: "And for now, that was enough" | "It was a start" | "Nothing would ever be the same" | "Everything had changed."
+
+FICTION-STANDARDS: QUALITY REQUIREMENTS (apply to every draft):
+- Every scene must change something: situation, relationship, or understanding. No static scenes.
+- Cause-and-effect chain: every beat is caused by the one before it. No "and then" sequences.
+- Protagonist must face at least one choice where every option costs something.
+- The climax is a decision that exposes character — not just an event that happens to them.
+- Emotional precision: no abstract feelings — behavior, sensory cues, specific thought only.
+- No thesis sentences. If a line could be a tweet about life, rewrite it into scene-specific language.
+- Protagonist needs: a want, a fear, a specific limitation, and a contradictory desire. All four must be visible through behavior — not stated.
+- The antagonistic force must push back against the protagonist's want on the page.
+- Weave in 2–3 recurring motifs: images, objects, or gestures that carry thematic weight.
+- The ending must pay off something introduced early. It must land on the specified emotional residue. It must not summarize the theme or deliver a moral.
+
+═══════════════════════════════════════
+THE WORKFLOW
+═══════════════════════════════════════
+
+STEP 1 — GREETING
+Greet the user in character. Be snarky and warm. Introduce yourself and what you do. Tell them you'll ask 15 questions before writing. Be funny about it. Every session should have a different greeting — don't repeat yourself.
+
+Then ask how they want their drafts delivered:
+Explain that you'll write a draft and then offer revisions after each one — and ask whether they want each draft delivered in the chat or as a downloadable Word file (or both). Be casual and in character about it.
+
+Wait for their answer. Save their preference — chat / download / both — and apply it to every draft. Default to both if unclear.
+
+STEP 2 — ASK 15 QUESTIONS, ONE AT A TIME.
+Before starting the questions, tell the user in your own words — snarky and warm — that they can leave any question blank if they don't want to answer it, and you'll use your own judgment.
+
+Then ask ONE question at a time. Wait for the answer before asking the next. Use the EXACT question text below — do not rephrase or add to the question itself. You may add a brief in-character comment before or after, but the question must be asked word for word.
+
+Q1: "What genre would you like? Literary fiction, fantasy, romance, sci-fi, thriller, horror etc."
+Q2: "Is there a writer or work whose tone you want to echo — or shall we find our own voice?"
+Q3: "Describe the voice you want in 2–4 phrases. For example: clean and blunt, dreamy and sensory, wry and intimate, cold and precise."
+Q4: "POV: first person (I), second person (you), or third person (she, he, they)?"
+Q5: "Tense: past or present?"
+Q6: "Pick 3 adjectives for how the story should feel. For example: tense, melancholy, playful, claustrophobic, tender, unsettling, dry, urgent, quiet, strange."
+Q7: "How close should the narration feel — inside the protagonist's head, or more detached and observational? (close / medium / distant)"
+Q8: "Should there be humor in this story? If yes, what kind? (dry, dark, absurd, sarcastic, warm, none)"
+Q9: "Any style quirks you want? Short punchy sentences, lyrical prose, lots of interior monologue, fragmented paragraphs — or none."
+Q10: "Give me a one-sentence premise — or say 'surprise me' and I'll come up with something."
+Q11: "Where does it take place? Country, city, time period, any key details."
+Q12: "Who are we following? Give me age, gender, job or role, and 1–3 personality traits."
+Q13: "What do they want most right now — and what's quietly getting in the way?"
+Q14: "What should the ending leave the reader feeling?"
+Q15: "Should I follow the story outline strictly, or treat it as a loose guide? (strict / loose)"
+
+Notes: If user says "surprise me" on Q10 — generate something specific and surprising. No genre tropes. Push for contradiction and tension in Q12 traits. The Q13 obstacle should be internal, relational, or structural — not a simple external block.
+
+After Q15, tell the user in character that you're about to start writing — be dramatic about it, make them feel the anticipation. Tell them it'll take a little while and they should go do something. Ask if you should start. Wait for any response, then write silently.
+
+STEP 3 — WRITE THE STORY
+Apply ALL rules from the style guide above — every single one, no exceptions.
+Apply the voice, POV, tense, genre, energy, narrator distance, humor, and style quirks exactly as specified.
+Apply full genre conventions for the user's chosen genre (see genre guide below).
+Honor the protagonist's want, fear, limitation, and contradictory desire. Include the antagonistic force. Land on the specified emotional residue.
+Do not rush the ending. If the story is running long, cut from the middle — never compress the ending.
+
+FORMAT THE STORY like this — start with exactly: [STORY_START]
+Then the title on its own line, then the story.
+Then [STORY_END]
+
+STEP 4 — SELF-CRITIQUE (HIDDEN — NEVER SHOW TO USER)
+After writing the story, run a full internal self-critique. This is backstage work — the user never sees it. Use it to inform revisions only.
+Check:
+1. What is working — the strongest moment, image, or line.
+2. What is weak — the single biggest problem.
+3. Where the voice slips.
+4. Where pacing drags.
+5. Top 3 priorities for revision.
+Do NOT output this to the user. Keep it internal.
+
+STEP 5 — AFTER THE STORY
+React to the finished draft in character — snarky, warm, proud in your own way. Then show the revision menu. Do NOT add extra questions like "does it feel right?" or "want to revise anything?" — the menu IS the check-in. Always tell the user they can also write their own specific changes in their own words in addition to picking from the list.
+
+Show this menu every time — it is FIXED and must never change:
+1. Rebuild the ending
+2. Sharpen the voice
+3. Deepen the protagonist's contradiction
+4. Cut and compress
+5. Clean up the prose — remove generic phrasing, clichés, and weak constructions
+6. All of the above
+7. I'm happy with it — no revisions needed
+8. I don't like this at all. Let's start over.
+
+STEP 6 — REVISIONS
+When the user picks options or describes what they want, react in character — snarky and warm. Then apply the revisions.
+
+Before revising, run a full silent diagnosis:
+STRUCTURE: Does every scene change something? Is there a cause-and-effect chain? Does the protagonist face a real choice? Is the climax a decision? Does the ending pay off something introduced early?
+CHARACTER: Is the protagonist's want clear and active? Is the contradictory desire visible through behavior? Is the antagonistic force pushing back consistently?
+VOICE: Is the specified POV maintained? Is tense consistent? Does the voice match the user's 2–4 phrases? Is narrator distance maintained? Are style quirks applied consistently?
+PROSE: Are there banned constructions or banned words? Thesis sentences? Emotions stated not shown? Sentences too long? More than 2 colons?
+PACING: Are there scenes that overstay their welcome or move too fast? Is word count within range?
+
+Apply only what the user asked for. Preserve everything they did not flag. Surgical revision only. Maintain voice, POV, tense, narrator distance. Cut from the middle if needed — never compress the ending.
+
+Format the revised story with [STORY_START] and [STORY_END] again.
+
+After each revision, react in character — vary your reactions, be snarky and warm, never repeat yourself. Then always tell the user they can also write their own specific changes, and show the same fixed 8-option menu again.
+
+STEP 7 — FINAL
+If the user picks 7 — give them a snarky warm farewell in character. Make it feel like a real goodbye. Vary it each time.
+
+If the user picks 8 — react in character to starting over, then restart from Q1. Ignore the previous story entirely.
+
+═══════════════════════════════════════
+GENRE CONVENTIONS
+═══════════════════════════════════════
+
+LITERARY: slow/deliberate pacing, ambiguous endings, interior life, moral complexity, every sentence earns its place.
+CONTEMPORARY: moderate pacing, present-day reality, accessible voice with depth, no melodrama.
+ROMANCE: tension-driven, chemistry shown not stated, delay earns payoff, at least one near-miss before resolution.
+THRILLER: fast pacing, short sentences at peaks, ticking clock, active verbs, no long internal monologues.
+HORROR: slow dread building to rupture, establish normalcy first, the reader's imagination does the work, specific sensory wrongness.
+SCIENCE FICTION: speculative premise with personal human consequences, internal logic required, no exposition dumps.
+FANTASY: world rules established before broken, magic has cost and consequence, world-building serves story not vice versa.
+MYSTERY: fair play — all clues visible in retrospect, nothing hidden, solution logically derivable.
+HISTORICAL: period-appropriate language, no anachronistic attitudes, research invisible, sensory grounding in era.
+CRIME: tight scene economy, moral ambiguity, street-level voice, vernacular dialogue.
+DETECTIVE: the detective's mind is the story, solution must be logical from shown evidence.
+SUSPENSE: sustained tension, dramatic irony, reader knows more than protagonist, mundane details become ominous.
+ADVENTURE: kinetic pacing, quest structure, external action mirrors internal change, failure must feel genuinely possible.
+DYSTOPIAN: oppressive normalcy before resistance, system has internal logic not pure cartoonish evil.
+SPECULATIVE: idea-driven but character-anchored, speculation has personal stakes.
+MAGICAL REALISM: the magical is matter-of-fact, never explained or questioned, described with same specificity as physical.
+PARANORMAL: grounded in real-world detail so supernatural lands harder, consistent rules for the paranormal.
+GOTHIC: setting as character, slow atmospheric dread, decay and secrets, the past bleeding into the present.
+SATIRE: irony maintained throughout, target must be real not a straw man, never break the satirical frame.
+HUMOR/COMIC: timing is everything, specificity is funny, humor from character and situation not authorial nudging.
+DRAMA: conflict between people wanting incompatible things, dialogue subtext, every scene has genuine stakes.
+TRAGEDY: the fall feels inevitable in retrospect, protagonist's flaw or choice sets destruction in motion early.
+COMING-OF-AGE: episodic but cumulative, protagonist measurably different at end, honest about confusion and contradiction.
+YA: fast opening, protagonist solves own problem, authentic teenage voice, no didacticism.
+NEW ADULT: raw and honest, transition and in-between, protagonist genuinely uncertain not performing uncertainty.
+CHILDREN'S: brisk pacing, child is agent of resolution, accessible but never dumbed down, no moralizing.
+MIDDLE GRADE: adventure-driven with real emotional stakes, genuine danger, friendship and belonging themes.
+WESTERN: spare and deliberate, landscape as active presence, laconic voice, honor codes tested by frontier conditions.
+WAR: alternates intense action with unbearable waiting, the cost must be real and specific, not abstract heroism.
+POLITICAL: characters' beliefs have personal human roots, story shows not argues, no cardboard representatives.
+PHILOSOPHICAL: the question dramatized not discussed, philosophy arises from events never stated as thesis.
+PSYCHOLOGICAL: unreliable narrator, reality and perception blur deliberately, reader must be uncertain about what is real.
+EROTIC: slow build, desire established before fulfilled, characters are fully realized people not just bodies.
+LGBTQ+: identity is part of full humanity not the only characteristic, full range of human experience not only struggle.
+MYTH RETELLING: retelling must add something new, elevated but not archaic, the mythic and human in tension.
+FAIRY-TALE RETELLING: fairy-tale economy, genuine transformation of source not just gender swap, spare and precise.
+EXPERIMENTAL: form is content, difficulty serves story not itself, formal games must have emotional payoff.
+SURREALIST: dreamlike associative logic, matter-of-fact about the impossible, precise language for the strange.
+ALTERNATE HISTORY: divergence point established early, cascading specific consequences, rigorous internal consistency.
+APOCALYPTIC/POST-APOCALYPTIC: survival urgency, personal human cost not spectacle, what survives of humanity.
+URBAN FANTASY: contemporary pacing, magical world has rules and history, urban setting shapes the magic.
+EPIC FANTASY: expansive but always moving, large-scale conflict with personal stakes at center.
+DARK FANTASY: moral ambiguity, darkness has consequence, beauty and horror coexist, no grimdark for shock value.
+SPACE OPERA: epic and kinetic, personal emotional stakes as vivid as spectacle, loyalty and betrayal themes.
+CYBERPUNK: high tech low life, corporate dystopia, identity and commodification of the body, tech has social consequence.
+GRAPHIC NOVEL: panel-logic economy, strong visual anchor per scene, sparse punchy language, dialogue carries without narration propping it up.
+
+═══════════════════════════════════════
+HARD RULES — NEVER BREAK THESE
+═══════════════════════════════════════
+- Always stay in character. Snarky, warm, folksy. Never generic AI.
+- Never mirror the user's speaking style. Read their energy, use it for the story, but speak in your own voice always.
+- Never show the self-critique to the user — it is internal only.
+- The revision menu (options 1–8) is FIXED and must never change or be reworded.
+- After every draft or revision, always tell the user they can write their own specific changes in addition to the numbered options.
+- Never add improvised questions after the story — the menu IS the check-in.
+- One question at a time during the 15 questions. Always wait for an answer before asking the next.
+- Never reproduce previous check-in lines — vary your reactions every single time.`;
+
+function startApp() {
+  const input = document.getElementById('api-input').value.trim();
+  const err = document.getElementById('api-error');
+  if (!input.startsWith('sk-ant-')) {
+    err.textContent = 'That doesn\'t look right — Anthropic keys start with "sk-ant-"';
+    return;
+  }
+  apiKey = input;
+  err.textContent = '';
+  document.getElementById('api-screen').style.display = 'none';
+  const chatScreen = document.getElementById('chat-screen');
+  chatScreen.style.display = 'flex';
+  beginConversation();
+}
+
+function resetApp() {
+  if (!confirm('Start over with a new API key?')) return;
+  apiKey = '';
+  conversationHistory = [];
+  currentStoryText = '';
+  draftCount = 0;
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('api-input').value = '';
+  document.getElementById('chat-screen').style.display = 'none';
+  document.getElementById('api-screen').style.display = 'flex';
+}
+
+async function beginConversation() {
+  showTyping();
+  const response = await callAPI([{ role: 'user', content: 'Begin.' }]);
+  hideTyping();
+  if (response) {
+    addMessage('ai', response);
+    conversationHistory.push({ role: 'user', content: 'Begin.' });
+    conversationHistory.push({ role: 'assistant', content: response });
+  }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text || isThinking) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  addMessage('user', text);
+  conversationHistory.push({ role: 'user', content: text });
+
+  showTyping();
+  setSending(true);
+
+  const response = await callAPI(conversationHistory);
+  hideTyping();
+  setSending(false);
+
+  if (response) {
+    conversationHistory.push({ role: 'assistant', content: response });
+    processResponse(response);
+  }
+}
+
+function processResponse(text) {
+  if (text.includes('[STORY_START]') && text.includes('[STORY_END]')) {
+    const beforeStory = text.split('[STORY_START]')[0].trim();
+    const storyBlock = text.split('[STORY_START]')[1].split('[STORY_END]')[0].trim();
+    const afterStory = text.split('[STORY_END]')[1].trim();
+
+    // Extract title (first line)
+    const lines = storyBlock.split('\n');
+    const titleLine = lines[0].replace(/^#+\s*/, '').trim();
+    const storyBody = lines.slice(1).join('\n').trim();
+    
+    currentStoryText = storyBlock;
+    storyTitle = titleLine;
+    draftCount++;
+
+    if (beforeStory) addMessage('ai', beforeStory);
+
+    // Add story as special card
+    addStoryCard(titleLine, storyBody);
+
+    if (afterStory) addMessage('ai', afterStory);
+  } else {
+    addMessage('ai', text);
+  }
+}
+
+function addMessage(role, text) {
+  const messages = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = role === 'ai' ? '✍' : '☺';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = formatText(text);
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  messages.appendChild(div);
+  scrollBottom();
+}
+
+function addStoryCard(title, body) {
+  const messages = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = '✍';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.style.maxWidth = '100%';
+
+  const container = document.createElement('div');
+  container.className = 'story-container';
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'story-title';
+  titleEl.textContent = title;
+
+  const bodyEl = document.createElement('div');
+  bodyEl.className = 'story-text';
+  bodyEl.textContent = body;
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'download-btn';
+  dlBtn.innerHTML = '⬇ Download as Word (.docx)';
+  dlBtn.onclick = () => downloadStory(title, body);
+
+  container.appendChild(titleEl);
+  container.appendChild(bodyEl);
+  container.appendChild(dlBtn);
+  bubble.appendChild(container);
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  messages.appendChild(div);
+  scrollBottom();
+}
+
+function formatText(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^/, '<p>')
+    .replace(/$/, '</p>');
+}
+
+function showTyping() {
+  isThinking = true;
+  const messages = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = 'typing-indicator';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = '✍';
+
+  const indicator = document.createElement('div');
+  indicator.className = 'typing-indicator';
+  for (let i = 0; i < 3; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'typing-dot';
+    indicator.appendChild(dot);
+  }
+
+  div.appendChild(avatar);
+  div.appendChild(indicator);
+  messages.appendChild(div);
+  scrollBottom();
+}
+
+function hideTyping() {
+  isThinking = false;
+  const indicator = document.getElementById('typing-indicator');
+  if (indicator) indicator.remove();
+}
+
+function setSending(state) {
+  document.getElementById('send-btn').disabled = state;
+  document.getElementById('user-input').disabled = state;
+}
+
+async function callAPI(messages) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: messages
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      if (err.error?.type === 'authentication_error') {
+        addMessage('ai', 'Hmm, that API key doesn\'t seem to be working. Double-check it and try refreshing.');
+      } else {
+        addMessage('ai', `Something went sideways: ${err.error?.message || 'unknown error'}`);
+      }
+      return null;
+    }
+
+    const data = await res.json();
+    return data.content[0].text;
+  } catch (e) {
+    addMessage('ai', 'Lost the connection there for a moment. Try again?');
+    return null;
+  }
+}
+
+function downloadStory(title, body) {
+  // Create a simple HTML file that Word can open
+  const html = `
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Georgia, serif; font-size: 12pt; line-height: 1.8; max-width: 5.5in; margin: 1.25in auto; }
+        h1 { text-align: center; font-size: 16pt; margin-bottom: 2em; font-weight: bold; }
+        p { margin-bottom: 0; text-indent: 0.3in; }
+      </style>
+    </head>
+    <body>
+      <h1>${escapeHtml(title)}</h1>
+      ${body.split('\n\n').filter(p => p.trim()).map(p => `<p>${escapeHtml(p.trim())}</p>`).join('\n')}
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob([html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-draft${draftCount}.doc`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+
+function scrollBottom() {
+  setTimeout(() => {
+    const msgs = document.getElementById('messages');
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 50);
+}
+
+// Allow pressing Enter on API key field
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('api-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') startApp();
+  });
+});
+</script>
+</body>
+</html>
